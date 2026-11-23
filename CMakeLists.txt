@@ -9,10 +9,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenCV 5.0 REQUIRED)
 
 add_subdirectory("external/SDL")
+add_subdirectory("external/Box2D")
 
 message(STATUS "Found OpenCV version: ${OpenCV_VERSION}")
 message(STATUS "OpenCV include directories: ${OpenCV_INCLUDE_DIRS}")
 
-add_executable(opencv_test_app main.cpp platform_render.cpp grid.cpp render.cpp)
+add_executable(opencv_test_app main.cpp platform_render.cpp grid.cpp physics.cpp ant.cpp)
 target_include_directories(opencv_test_app PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(opencv_test_app PRIVATE ${OpenCV_LIBS} SDL3::SDL3)
+target_link_libraries(opencv_test_app PRIVATE ${OpenCV_LIBS} SDL3::SDL3 box2d::box2d)

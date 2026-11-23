@@ -17,9 +17,9 @@ struct Cell {
 	float pheromone = 0.f;
 };
 
-constexpr size_t WIDTH = 960;
-constexpr size_t HEIGHT = 540;
-extern Cell grid[WIDTH][HEIGHT];
+constexpr size_t GRID_WIDTH = 960;
+constexpr size_t GRID_HEIGHT = 540;
+extern Cell grid[GRID_WIDTH][GRID_HEIGHT];
 
 Cell* get_cell(size_t x, size_t y);
 void init_grid();

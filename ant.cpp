@@ -1,9 +1,9 @@
 #include "ant.h"
 #include "grid.h"
-
+#include "physics.h"
 #include <cmath>
 
-Cell* get_cell_from_position(const Vector2& position) {
+Cell* get_cell_from_position(const b2Vec2& position) {
 	size_t x = std::round(position.x);
 	size_t y = std::round(position.y);
 	return &grid[x][y];
@@ -26,14 +26,26 @@ Cell* Ant::get_next_cell(const Cell* current_cell) {
 	return best_candidate;
 }
 
-void Ant::update() {
-	Cell* current_cell = get_cell_from_position(position);
-	Cell* next_cell = get_next_cell(current_cell);
+Ant::Ant(float health, float nutrition, float x, float y) {
+	body_id = create_physics_entity(x, y, 30.f);
+	this->max_health = health;
+	this->max_nutrition = nutrition;
+	this->nutrition = nutrition;
+	this->health = health;
+}
 
-	if (next_cell != nullptr) {
-		direction = Vector2{static_cast<float>(next_cell->x - current_cell->x),
-							static_cast<float>(next_cell->y - current_cell->y)};
-		velocity = direction;
-		position += velocity;
-	}
+Ant::~Ant() {
+	destroy_physics_entity(body_id);
+}
+
+void Ant::update() {
+	//Cell* current_cell = get_cell_from_position(position);
+	//Cell* next_cell = get_next_cell(current_cell);
+
+	//if (next_cell != nullptr) {
+	//	direction = b2Vec2{static_cast<float>(next_cell->x - current_cell->x),
+	//					   static_cast<float>(next_cell->y - current_cell->y)};
+	//	velocity = direction;
+	//	position += velocity;
+	//}
 }

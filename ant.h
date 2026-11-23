@@ -1,6 +1,5 @@
 #pragma once
-
-#include "vector2.h"
+#include <box2d/box2d.h>
 
 struct Cell;
 
@@ -12,15 +11,14 @@ enum class Mode {
 struct Ant {
 	float max_health;
 	float max_nutrition;
-	float max_speed;
 
 	Mode mode = Mode::SCOUT;
 	float health;
 	float nutrition;
-	Vector2 velocity;
-	Vector2 position;
-	Vector2 direction;
-
+	b2BodyId body_id;
+	b2Vec2 force_direction = {1.f, 1.f};
 	Cell* get_next_cell(const Cell* current_cell);
+	Ant(float health, float nutrition, float x, float y);
+	~Ant();
 	void update();
 };

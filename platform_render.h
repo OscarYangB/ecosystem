@@ -7,3 +7,4 @@ void draw_rect_around_point(int x, int y, int w, int h);
 void start_render();
 void end_render();
 bool start_window();
+void render_entity(float x, float y, double angle);
