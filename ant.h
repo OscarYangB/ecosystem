@@ -17,8 +17,8 @@ struct Ant {
 	float nutrition;
 	b2BodyId body_id;
 	b2Vec2 force_direction = {1.f, 1.f};
-	Cell* get_next_cell(const Cell* current_cell);
-	Ant(float health, float nutrition, float x, float y);
-	~Ant();
-	void update();
+	bool dead = false;
+
+	void init(float health, float nutrition, float x, float y);
+	void destroy();
 };

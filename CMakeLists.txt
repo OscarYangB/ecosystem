@@ -14,6 +14,6 @@ add_subdirectory("external/Box2D")
 message(STATUS "Found OpenCV version: ${OpenCV_VERSION}")
 message(STATUS "OpenCV include directories: ${OpenCV_INCLUDE_DIRS}")
 
-add_executable(opencv_test_app main.cpp platform_render.cpp grid.cpp physics.cpp ant.cpp)
+add_executable(opencv_test_app main.cpp platform_render.cpp physics.cpp ant.cpp)
 target_include_directories(opencv_test_app PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(opencv_test_app PRIVATE ${OpenCV_LIBS} SDL3::SDL3 box2d::box2d)
