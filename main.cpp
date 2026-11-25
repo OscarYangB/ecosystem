@@ -51,7 +51,10 @@ b2Vec2 tree_positions[] = {
     { 800.f, 460.f },
 
     { 1000.f, 1000.f },
-    { 1200.f, 900.f }
+    { 1200.f, 900.f },
+
+    { 1500.f, 200.f },
+    { 1400.f, 100.f },
 };
 
 struct Monument {
@@ -78,6 +81,8 @@ std::vector<DetectedStructure> detected_structures{};
 bool detected_strucutures_dirty = false;
 SDL_Mutex* mutex = nullptr;
 
+std::vector<SignalType> signals{};
+
 static int SDLCALL computer_vision_thread(void* ptr) {
     while (true) {
         video >> frame;
@@ -103,8 +108,18 @@ static int SDLCALL computer_vision_thread(void* ptr) {
     }
 }
 
+struct Food {
+    b2Vec2 position;
+    float r;
+    float g;
+    float b;
+    int type;
+    float rotation;
+};
+
 struct Tree {
     static constexpr float TREE_SIZE = 350.f;
+    static constexpr int HEALTH_MORE_THAN_FRUIT = 2;
     Animation animation{};
     b2BodyId body_id;
     float scale;
@@ -114,9 +129,11 @@ struct Tree {
     float r;
     float g;
     float b;
+    std::vector<Food> food = {};
+    int health;
 
     inline void reset_grow_timer(size_t number_of_trees) {
-        grow_timer = random_float(40.f, 120.f) * std::pow(1.1f, number_of_trees);
+        grow_timer = random_float(30.f, 100.f);
     }
 
     inline void init(float x, float y) {
@@ -125,14 +142,60 @@ struct Tree {
         animation.textures = { tree_1, tree_2, tree_3 };
         animation.framerate = random_float(4.f, 8.f);
         reset_grow_timer(0);
-        death_timer = random_float(60.f, 180.f);
+        death_timer = random_float(60.f, 140.f);
         r = random_float(0.9f, 1.f);
         g = random_float(0.9f, 1.f);
         b = random_float(0.9f, 1.f);
+        
+
+        int fruit = random_integer(3, 6);
+        health = fruit + HEALTH_MORE_THAN_FRUIT;
+        for (int i = 0; i < fruit; i++) {
+            float variance = TREE_SIZE / 4.f;
+            Food new_food = { b2Vec2{ random_float(x - variance, x + variance), random_float(y - variance, y + variance) },
+                random_float(0.6f, 1.f), random_float(0.6f, 1.f), random_float(0.6f, 1.f), random_integer(0, 3), random_float(0.f, 2.f*3.14)};
+            food.emplace_back(new_food);
+        }
+    }
+
+    inline void destroy() {
+        destroy_physics_entity(body_id);
     }
 };
 
 std::vector<Tree> trees = {};
+std::vector<Ant> ants = {};
+
+b2Vec2 get_closest_tree_position(b2Vec2 position) {
+    float smallest_distance = 500000.f;
+    b2Vec2 closest_tree = {0.f, 0.f};
+    for (Tree& tree : trees) {
+        b2Vec2 tree_position = b2Body_GetPosition(tree.body_id);
+        float distance = b2Distance(tree_position, position);
+        if (distance < smallest_distance) {
+            smallest_distance = distance;
+            closest_tree = tree_position;
+        }
+    }
+    return closest_tree;
+}
+
+b2Vec2 get_closest_ant_position(b2Vec2 position, Ant* ignore) {
+    float smallest_distance = 500000.f;
+    b2Vec2 closest_ant = { 1.f, 0.f};
+    for (Ant& ant : ants) {
+        if (&ant == ignore) {
+            continue;
+        }
+        b2Vec2 ant_position = b2Body_GetPosition(ant.body_id);
+        float distance = b2Distance(closest_ant, position);
+        if (distance < smallest_distance) {
+            smallest_distance = distance;
+            closest_ant = ant_position;
+        }
+    }
+    return closest_ant;
+}
 
 int main() {
     //for (int i = 0; i < 10; i++) {
@@ -167,10 +230,9 @@ int main() {
     }
     
     init_physics();
-    std::vector<Ant> ants = {};
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 10; i++) {
         Ant ant{};
-        ant.init(5.f, 5.f, random_float(0.f, 1920.f), random_float(0.f, 1080.f));
+        ant.init(random_float(0.f, 1920.f), random_float(0.f, 1080.f));
         ants.emplace_back(ant);
     }
 
@@ -186,6 +248,8 @@ int main() {
         Uint64 new_time = SDL_GetTicks();
         double deltatime = (new_time - time) / 1000.f;
         time = new_time;
+
+        deltatime *= 10.f;
 
         start_render();
 
@@ -221,27 +285,71 @@ int main() {
 
         update_physics(deltatime);
         for (Ant& ant : ants) {
+            b2Vec2 position = b2Body_GetPosition(ant.body_id);
+
+            ant.health -= deltatime;
+            if (ant.health <= 0.f) ant.dead = true;
+            ant.cooldown_timer += deltatime;
             ant.direction_timer -= deltatime;
             if (ant.direction_timer < 0.f) {
                 ant.direction_timer = random_float(3.f, 6.f);                
                 ant.intended_direction = b2Normalize(b2RotateVector(b2MakeRot(random_float(-degtorad(30), degtorad(30))), b2Body_GetLinearVelocity(ant.body_id)));
             }
+            if (ant.health < 20.f) {
+                ant.intended_direction = b2Normalize(get_closest_tree_position(position) - position) * 2.f;
+            }
+            else if (ant.cooldown_timer > 40.f && ant.health > 60.f) {
+                ant.intended_direction = b2Normalize(get_closest_ant_position(position, &ant) - position) * 2.f;
+            }
 
             ant.velocity = exponential_decay(ant.velocity, ant.intended_direction, 1, deltatime);
             b2Body_SetLinearVelocity(ant.body_id, ant.velocity * ant.speed);
-            b2Vec2 position = b2Body_GetPosition(ant.body_id);
 
             render_entity(position.x, position.y, std::atan2(ant.velocity.y, ant.velocity.x), 50, 50, jermaine);
         }
+
+        std::vector<b2Vec2> new_ants{};
         auto events = b2World_GetContactEvents(world_id);
         for (int i = 0; i < events.beginCount; i++) {
             auto body_a = b2Shape_GetBody(events.beginEvents[i].shapeIdA);
             auto body_b = b2Shape_GetBody(events.beginEvents[i].shapeIdB);
+            std::vector<Ant*> hit_ants{};
+            std::vector<Tree*> hit_trees{};
             for (Ant& ant : ants) {
                 if (B2_ID_EQUALS(ant.body_id, body_a) || B2_ID_EQUALS(ant.body_id, body_b)) {
                     ant.intended_direction = b2RotateVector(b2MakeRot(random_float(-degtorad(90), degtorad(270))), ant.intended_direction);
+                    hit_ants.emplace_back(&ant);
                 }
             }
+            for (Tree& tree : trees) {
+                if (B2_ID_EQUALS(tree.body_id, body_a) || B2_ID_EQUALS(tree.body_id, body_b)) {
+                    hit_trees.emplace_back(&tree);
+                }
+            }
+            if (hit_ants.size() == 2) { // Collision was between 2 ants
+                if (random_float(0.f, 1.f) > 0.4f && hit_ants[0]->cooldown_timer > 7.f && hit_ants[1]->cooldown_timer > 7.f) {
+                    b2Vec2 position = b2Lerp(b2Body_GetPosition(body_a), b2Body_GetPosition(body_b), 0.5);
+                    hit_ants[0]->health /= 1.2f;
+                    hit_ants[1]->health /= 1.2f;
+                    new_ants.emplace_back(position);
+                }
+                hit_ants[0]->cooldown_timer = 0.f;
+                hit_ants[1]->cooldown_timer = 0.f;
+            }
+            if (hit_trees.size() == 1 && hit_ants.size() == 1) {
+                if (hit_trees[0]->food.size() > 0) {
+                    hit_trees[0]->food.erase(hit_trees[0]->food.end() - 1, hit_trees[0]->food.end());
+                    hit_ants[0]->health += random_float(60.f, 80.f);
+                }
+                hit_trees[0]->health--;
+                if (hit_trees[0]->health <= 0) {
+                    hit_trees[0]->dead = true;
+                }
+            }
+        }
+        for (const b2Vec2& new_ant : new_ants) {
+            ants.emplace_back();
+            ants[ants.size() - 1].init(new_ant.x, new_ant.y);
         }
         
 
@@ -262,6 +370,26 @@ int main() {
             trees[i].death_timer -= deltatime;
             if (trees[i].death_timer < 0.f) {
                 trees[i].dead = true;
+            }
+
+            for (Food& food : trees[i].food) {
+                SDL_Texture* food_texture = nullptr;
+                switch (food.type) {
+                case 0:
+                    food_texture = food_1;
+                    break;
+                case 1:
+                    food_texture = food_2;
+                    break;
+                case 2:
+                    food_texture = food_3;
+                    break;
+                case 3:
+                    food_texture = food_4;
+                    break;
+                }
+                SDL_SetTextureColorMod(food_texture, food.r * 255, food.g * 255, food.b * 255);
+                render_entity(food.position.x, food.position.y, food.rotation, 15, 15, food_texture);
             }
         }
 
@@ -285,6 +413,16 @@ int main() {
             }
         }
 
+        for (Ant& ant : ants) {
+            if (ant.dead) {
+                ant.destroy();
+            }
+        }
+        for (Tree& tree : trees) {
+            if (tree.dead) {
+                tree.destroy();
+            }
+        }
         auto remove_iter = std::remove_if(ants.begin(), ants.end(), [](const Ant& ant) {return ant.dead; });
         ants.erase(remove_iter, ants.end());
         auto remove_iter_tree = std::remove_if(trees.begin(), trees.end(), [](const Tree& tree) {return tree.dead; });

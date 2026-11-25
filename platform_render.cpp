@@ -11,6 +11,10 @@ SDL_Texture* tree_3 = nullptr;
 SDL_Texture* circle_1 = nullptr;
 SDL_Texture* circle_2 = nullptr;
 SDL_Texture* circle_3 = nullptr;
+SDL_Texture* food_1 = nullptr;
+SDL_Texture* food_2 = nullptr;
+SDL_Texture* food_3 = nullptr;
+SDL_Texture* food_4 = nullptr;
 
 void draw_rect_around_point(int x, int y, int w, int h) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -67,6 +71,10 @@ void load_assets() {
     load_image("circle_1.png", &circle_1);
     load_image("circle_2.png", &circle_2);
     load_image("circle_3.png", &circle_3);
+    load_image("food1.png", &food_1);
+    load_image("food2.png", &food_2);
+    load_image("food3.png", &food_3);
+    load_image("food4.png", &food_3);
 }
 
 bool start_window() {

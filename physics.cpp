@@ -3,7 +3,6 @@
 #include <random>
 
 b2WorldId world_id;
-std::vector<b2BodyId> bodies = {};
 std::vector<b2BodyId> monument_bodies = {};
 
 using RandomGeneratorType = std::mt19937;
@@ -11,6 +10,11 @@ RandomGeneratorType random_generator;
 
 float random_float(float min_inclusive, float min_exclusive) {
 	std::uniform_real_distribution<float> distribution(min_inclusive, min_exclusive);
+	return distribution(random_generator);
+}
+
+int random_integer(int min_inclusive, int max_inclusive) {
+	std::uniform_int_distribution<int> distribution(min_inclusive, max_inclusive);
 	return distribution(random_generator);
 }
 
@@ -25,7 +29,6 @@ b2BodyId create_static_physics_entity(float x, float y, float rotation, float si
 	circle.radius = size;
 	b2ShapeDef shapeDef = b2DefaultShapeDef();
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);
-	bodies.push_back(bodyId);
 	return bodyId;
 }
 
@@ -94,15 +97,12 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	shapeDef.density = 0.6f;
 	shapeDef.material.friction = 500.f;
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);
-	bodies.push_back(bodyId);
 	b2Body_EnableContactEvents(bodyId, true);
 	return bodyId;
 }
 
 void destroy_physics_entity(b2BodyId body) {
 	b2DestroyBody(body);
-	auto remove_start = std::remove_if(bodies.begin(), bodies.end(), [](b2BodyId current_body) { return !b2Body_IsValid(current_body); });
-	bodies.erase(remove_start, bodies.end());
 }
 
 void update_physics(double deltatime) {
