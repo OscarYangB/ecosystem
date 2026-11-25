@@ -79,7 +79,7 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	circle.center = { 0.f,0.f };
 	circle.radius = size;
 	b2ShapeDef shapeDef = b2DefaultShapeDef();
-	shapeDef.density = 0.3f;
+	shapeDef.density = 0.6f;
 	shapeDef.material.friction = 500.f;
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);
 	bodies.push_back(bodyId);

@@ -3,7 +3,7 @@
 #include <cmath>
 
 void Ant::init(float health, float nutrition, float x, float y) {
-	body_id = create_physics_entity(x, y, 30.f);
+	body_id = create_physics_entity(x, y, 20.f);
 	this->max_health = health;
 	this->max_nutrition = nutrition;
 	this->nutrition = nutrition;

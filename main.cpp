@@ -54,7 +54,13 @@ float random_float(float min_inclusive, float min_exclusive) {
 
 b2Vec2 tree_positions[] = {
     { 400.f, 400.f },
-    { 1000.f, 1000.f }
+    { 500.f, 440.f },
+    { 660.f, 420.f },
+    { 720.f, 430.f },
+    { 800.f, 460.f },
+
+    { 1000.f, 1000.f },
+    { 1200.f, 900.f }
 };
 
 struct Monument {
@@ -235,7 +241,7 @@ int main() {
 
             b2Vec2 position = b2Body_GetPosition(ant.body_id);
             b2Vec2 forward_direction = b2RotateVector(b2Body_GetRotation(ant.body_id), b2Vec2{1.f, 0.f});
-            b2Vec2 force_position = position + forward_direction * 50.f;
+            b2Vec2 force_position = position + forward_direction * 10.f;
             b2Body_ApplyForce(ant.body_id, ant.travel_direction * 10000.f, force_position, true);
             //DrawLine(force_position.x, force_position.y, force_position.x + ant.travel_direction.x * 50.f, force_position.y + ant.travel_direction.y * 50.f);
             //DrawLine(position.x, position.y, position.x + forward_direction.x * 50.f, position.y + forward_direction.y * 50.f);
