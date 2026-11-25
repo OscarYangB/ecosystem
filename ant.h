@@ -3,16 +3,16 @@
 
 struct Cell;
 
-enum class Mode {
-	SCOUT,
-	FOLLOW,
+enum SignalType {
+	REPRODUCE = 1 << 1,
+	FOOD = 1 << 2,
+	DANGER = 1 << 3
 };
 
 struct Ant {
 	float max_health;
 	float max_nutrition;
 
-	Mode mode = Mode::SCOUT;
 	float health;
 	float nutrition;
 	b2BodyId body_id;

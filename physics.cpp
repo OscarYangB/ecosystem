@@ -83,6 +83,7 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	shapeDef.material.friction = 500.f;
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);
 	bodies.push_back(bodyId);
+	//b2Body_EnableContactEvents(bodyId, true);
 	return bodyId;
 }
 

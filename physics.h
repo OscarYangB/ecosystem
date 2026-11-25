@@ -2,6 +2,8 @@
 
 #include <box2d/box2d.h>
 
+extern b2WorldId world_id;
+
 constexpr b2Vec2 MONUMENT_DIMENSIONS[] = {
     { 200,200 },
     { 200,100 },

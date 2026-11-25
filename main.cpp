@@ -118,8 +118,8 @@ struct Tree {
     float g;
     float b;
 
-    inline void reset_grow_timer() {
-        grow_timer = random_float(40.f, 120.f);
+    inline void reset_grow_timer(size_t number_of_trees) {
+        grow_timer = random_float(40.f, 120.f) * std::pow(1.1f, number_of_trees);
     }
 
     inline void init(float x, float y) {
@@ -127,7 +127,7 @@ struct Tree {
         body_id = create_static_physics_entity(x, y, random_float(0.f, 360.f), (TREE_SIZE * scale) / 2.f);
         animation.textures = { tree_1, tree_2, tree_3 };
         animation.framerate = random_float(4.f, 8.f);
-        reset_grow_timer();
+        reset_grow_timer(0);
         death_timer = random_float(60.f, 180.f);
         r = random_float(0.9f, 1.f);
         g = random_float(0.9f, 1.f);
@@ -237,11 +237,19 @@ int main() {
             b2Vec2 forward_direction = b2RotateVector(b2Body_GetRotation(ant.body_id), b2Vec2{1.f, 0.f});
             b2Vec2 force_position = position + forward_direction * 50.f;
             b2Body_ApplyForce(ant.body_id, ant.travel_direction * 10000.f, force_position, true);
-            DrawLine(force_position.x, force_position.y, force_position.x + ant.travel_direction.x * 50.f, force_position.y + ant.travel_direction.y * 50.f);
+            //DrawLine(force_position.x, force_position.y, force_position.x + ant.travel_direction.x * 50.f, force_position.y + ant.travel_direction.y * 50.f);
             //DrawLine(position.x, position.y, position.x + forward_direction.x * 50.f, position.y + forward_direction.y * 50.f);
 
             render_entity(position.x, position.y, b2Rot_GetAngle(b2Body_GetRotation(ant.body_id)), 50, 50, jermaine);
         }
+        //auto events = b2World_GetContactEvents(world_id);
+        //for (int i = 0; i < events.beginCount; i++) {
+        //    auto body_a = b2Shape_GetBody(events.beginEvents[i].shapeIdA);
+        //    auto body_b = b2Shape_GetBody(events.beginEvents[i].shapeIdB);
+        //    b2Body_SetTransform(body_a, b2Body_GetPosition(body_a), b2MakeRot(b2Rot_GetAngle(b2Body_GetRotation(body_a))+1.6f) );
+        //    b2Body_SetTransform(body_b, b2Body_GetPosition(body_b), b2MakeRot(b2Rot_GetAngle(b2Body_GetRotation(body_a)) + 1.6f));
+        //}
+        
 
         for (int i = 0; i < trees.size(); i++) {
             trees[i].animation.update(deltatime);
@@ -252,7 +260,7 @@ int main() {
 
             trees[i].grow_timer -= deltatime;
             if (trees[i].grow_timer < 0.f) {
-                trees[i].reset_grow_timer();
+                trees[i].reset_grow_timer(trees.size());
                 trees.emplace_back();              
                 trees[trees.size() - 1].init(position.x + random_float(-tree_size/4.f, tree_size/4.f), position.y + random_float(-tree_size/4.f, tree_size/4.f));
             }
