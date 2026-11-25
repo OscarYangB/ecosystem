@@ -22,7 +22,7 @@ void draw_rect_around_point(int x, int y, int w, int h) {
 void render_entity(float x, float y, double angle, float w, float h, SDL_Texture* texture) {
     const float half_w = w / 2.f;
     const float half_h = h / 2.f;
-    SDL_FRect dst = { x - half_w, y - half_h, half_w, half_h };
+    SDL_FRect dst = { x - half_w, y - half_h, w, h };
     SDL_RenderTextureRotated(renderer, texture, nullptr, &dst, (angle / (2 * SDL_PI_F)) * 360.f + 90.f, nullptr, SDL_FLIP_NONE);
 }
 

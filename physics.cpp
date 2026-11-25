@@ -70,8 +70,8 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	bodyDef.type = b2_dynamicBody;
 	bodyDef.position = b2Pos{ x, y };
 	bodyDef.rotation = b2MakeRot(0.f);
-	bodyDef.linearDamping = 0.f;
-	bodyDef.angularDamping = 0.30f;
+	bodyDef.linearDamping = 0.4f;
+	bodyDef.angularDamping = 0.8f;
 	bodyDef.gravityScale = 0.f;
 	bodyDef.enableSleep = false;
 	b2BodyId bodyId = b2CreateBody(world_id, &bodyDef);
@@ -80,7 +80,7 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	circle.radius = size;
 	b2ShapeDef shapeDef = b2DefaultShapeDef();
 	shapeDef.density = 0.3f;
-	shapeDef.material.friction = 500000.0f;
+	shapeDef.material.friction = 500.f;
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);
 	bodies.push_back(bodyId);
 	return bodyId;
