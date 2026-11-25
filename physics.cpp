@@ -1,9 +1,18 @@
 #include <vector>
 #include "physics.h"
+#include <random>
 
 b2WorldId world_id;
 std::vector<b2BodyId> bodies = {};
 std::vector<b2BodyId> monument_bodies = {};
+
+using RandomGeneratorType = std::mt19937;
+RandomGeneratorType random_generator;
+
+float random_float(float min_inclusive, float min_exclusive) {
+	std::uniform_real_distribution<float> distribution(min_inclusive, min_exclusive);
+	return distribution(random_generator);
+}
 
 b2BodyId create_static_physics_entity(float x, float y, float rotation, float size) {
 	b2BodyDef bodyDef = b2DefaultBodyDef();
@@ -63,6 +72,9 @@ void init_physics() {
 	world_id = b2CreateWorld(&worldDef);
 	init_boundaries();
 	init_monuments();
+
+	std::random_device device{};
+	random_generator = std::mt19937{ device() };
 }
 
 b2BodyId create_physics_entity(float x, float y, float size) {
@@ -70,7 +82,7 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	bodyDef.type = b2_dynamicBody;
 	bodyDef.position = b2Pos{ x, y };
 	bodyDef.rotation = b2MakeRot(0.f);
-	bodyDef.linearDamping = 0.4f;
+	bodyDef.linearDamping = 0.0f;
 	bodyDef.angularDamping = 0.8f;
 	bodyDef.gravityScale = 0.f;
 	bodyDef.enableSleep = false;
@@ -83,7 +95,7 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	shapeDef.material.friction = 500.f;
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);
 	bodies.push_back(bodyId);
-	//b2Body_EnableContactEvents(bodyId, true);
+	b2Body_EnableContactEvents(bodyId, true);
 	return bodyId;
 }
 

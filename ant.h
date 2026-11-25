@@ -15,8 +15,10 @@ struct Ant {
 
 	float health;
 	float nutrition;
+	float speed;
 	b2BodyId body_id;
-	b2Vec2 travel_direction = {1.f, 1.f};
+	b2Vec2 intended_direction = {1.f, 1.f};
+	b2Vec2 velocity = { 1.f, 1.f };
 	float direction_timer = 0.f;
 	bool dead = false;
 

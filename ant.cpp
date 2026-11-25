@@ -8,6 +8,7 @@ void Ant::init(float health, float nutrition, float x, float y) {
 	this->max_nutrition = nutrition;
 	this->nutrition = nutrition;
 	this->health = health;
+	speed = random_float(8.f, 12.f);
 }
 
 void Ant::destroy() {

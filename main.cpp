@@ -9,7 +9,6 @@
 #include "physics.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_mutex.h>
-#include <random>
 
 struct Animation {
     std::vector<SDL_Texture*> textures = {};
@@ -43,14 +42,6 @@ struct Animation {
         }
     }
 };
-
-using RandomGeneratorType = std::mt19937;
-RandomGeneratorType random_generator;
-
-float random_float(float min_inclusive, float min_exclusive) {
-    std::uniform_real_distribution<float> distribution(min_inclusive, min_exclusive);
-    return distribution(random_generator);
-}
 
 b2Vec2 tree_positions[] = {
     { 400.f, 400.f },
@@ -154,9 +145,6 @@ int main() {
 
     mutex = SDL_CreateMutex();
 
-    std::random_device device{};
-    random_generator = std::mt19937{ device() };
-
 	video = cv::VideoCapture(0);
     video.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
     video.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
@@ -236,25 +224,25 @@ int main() {
             ant.direction_timer -= deltatime;
             if (ant.direction_timer < 0.f) {
                 ant.direction_timer = random_float(3.f, 6.f);                
-                ant.travel_direction = b2Normalize(b2Vec2{ random_float(-1.f, 1.f), random_float(-1.f, 1.f) });
+                ant.intended_direction = b2Normalize(b2RotateVector(b2MakeRot(random_float(-degtorad(30), degtorad(30))), b2Body_GetLinearVelocity(ant.body_id)));
             }
 
+            ant.velocity = exponential_decay(ant.velocity, ant.intended_direction, 1, deltatime);
+            b2Body_SetLinearVelocity(ant.body_id, ant.velocity * ant.speed);
             b2Vec2 position = b2Body_GetPosition(ant.body_id);
-            b2Vec2 forward_direction = b2RotateVector(b2Body_GetRotation(ant.body_id), b2Vec2{1.f, 0.f});
-            b2Vec2 force_position = position + forward_direction * 10.f;
-            b2Body_ApplyForce(ant.body_id, ant.travel_direction * 10000.f, force_position, true);
-            //DrawLine(force_position.x, force_position.y, force_position.x + ant.travel_direction.x * 50.f, force_position.y + ant.travel_direction.y * 50.f);
-            //DrawLine(position.x, position.y, position.x + forward_direction.x * 50.f, position.y + forward_direction.y * 50.f);
 
-            render_entity(position.x, position.y, b2Rot_GetAngle(b2Body_GetRotation(ant.body_id)), 50, 50, jermaine);
+            render_entity(position.x, position.y, std::atan2(ant.velocity.y, ant.velocity.x), 50, 50, jermaine);
         }
-        //auto events = b2World_GetContactEvents(world_id);
-        //for (int i = 0; i < events.beginCount; i++) {
-        //    auto body_a = b2Shape_GetBody(events.beginEvents[i].shapeIdA);
-        //    auto body_b = b2Shape_GetBody(events.beginEvents[i].shapeIdB);
-        //    b2Body_SetTransform(body_a, b2Body_GetPosition(body_a), b2MakeRot(b2Rot_GetAngle(b2Body_GetRotation(body_a))+1.6f) );
-        //    b2Body_SetTransform(body_b, b2Body_GetPosition(body_b), b2MakeRot(b2Rot_GetAngle(b2Body_GetRotation(body_a)) + 1.6f));
-        //}
+        auto events = b2World_GetContactEvents(world_id);
+        for (int i = 0; i < events.beginCount; i++) {
+            auto body_a = b2Shape_GetBody(events.beginEvents[i].shapeIdA);
+            auto body_b = b2Shape_GetBody(events.beginEvents[i].shapeIdB);
+            for (Ant& ant : ants) {
+                if (B2_ID_EQUALS(ant.body_id, body_a) || B2_ID_EQUALS(ant.body_id, body_b)) {
+                    ant.intended_direction = b2RotateVector(b2MakeRot(random_float(-degtorad(90), degtorad(270))), ant.intended_direction);
+                }
+            }
+        }
         
 
         for (int i = 0; i < trees.size(); i++) {
