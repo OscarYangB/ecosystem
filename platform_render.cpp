@@ -15,7 +15,18 @@ SDL_Texture* food_1 = nullptr;
 SDL_Texture* food_2 = nullptr;
 SDL_Texture* food_3 = nullptr;
 SDL_Texture* food_4 = nullptr;
+SDL_Texture* code_1 = nullptr;
+SDL_Texture* code_2 = nullptr;
+SDL_Texture* code_3 = nullptr;
+SDL_Texture* code_4 = nullptr;
 
+void draw_white() {
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+}
+
+void draw_black() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+}
 void draw_rect_around_point(int x, int y, int w, int h) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_FRect rect = { x, y, w, h };
@@ -28,6 +39,23 @@ void render_entity(float x, float y, double angle, float w, float h, SDL_Texture
     const float half_h = h / 2.f;
     SDL_FRect dst = { x - half_w, y - half_h, w, h };
     SDL_RenderTextureRotated(renderer, texture, nullptr, &dst, (angle / (2 * SDL_PI_F)) * 360.f + 90.f, nullptr, SDL_FLIP_NONE);
+}
+
+void render_code(float x, float y, float w, float h, SDL_Texture* texture) {
+    SDL_FRect dst = { x, y, w, h };
+    SDL_RenderTexture(renderer, texture, nullptr, &dst);
+}
+
+int get_screen_width() {
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    return w;
+}
+
+int get_screen_height() {
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+    return h;
 }
 
 SDL_Texture* get_tree(int index) {
@@ -74,7 +102,11 @@ void load_assets() {
     load_image("food1.png", &food_1);
     load_image("food2.png", &food_2);
     load_image("food3.png", &food_3);
-    load_image("food4.png", &food_3);
+    load_image("food4.png", &food_4);
+    load_image("code_1.png", &code_1);
+    load_image("code_2.png", &code_2);
+    load_image("code_3.png", &code_3);
+    load_image("code_4.png", &code_4);
 }
 
 bool start_window() {

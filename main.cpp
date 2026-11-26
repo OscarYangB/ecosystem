@@ -9,6 +9,9 @@
 #include "physics.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_mutex.h>
+#include "opencv2/geometry.hpp"
+
+static constexpr char* WINDOW = "window";
 
 struct Animation {
     std::vector<SDL_Texture*> textures = {};
@@ -71,6 +74,7 @@ cv::Mat frame;
 cv::Mat cropped_frame;
 cv::aruco::DetectorParameters detectorParams = cv::aruco::DetectorParameters();
 cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+cv::aruco::ArucoDetector detector;
 
 struct DetectedStructure {
     b2Vec2 position;
@@ -81,25 +85,64 @@ std::vector<DetectedStructure> detected_structures{};
 bool detected_strucutures_dirty = false;
 SDL_Mutex* mutex = nullptr;
 
-std::vector<SignalType> signals{};
+cv::Mat perspective_matrix;
+bool apply_perspective = false;
+
+void test() {
+    video = cv::VideoCapture(0);
+    video.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+    video.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+
+    if (!video.isOpened())
+    {
+        std::cout << "Could not open video.";
+    }
+    detectorParams.minMarkerPerimeterRate = 0.001;
+    detectorParams.minOtsuStdDev = 1.f;
+    detector = cv::aruco::ArucoDetector(dictionary, detectorParams);
+
+    static constexpr char* WINDOW = "window";
+    cv::namedWindow(WINDOW, cv::WINDOW_AUTOSIZE);
+
+    while (true) {
+        video >> frame;
+
+        std::vector<int> markerIds;
+        std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
+        detector.detectMarkers(frame, markerCorners, markerIds, rejectedCandidates);
+        cv::aruco::drawDetectedMarkers(frame, markerCorners, markerIds);
+
+        cv::imshow(WINDOW, frame);
+        char c = (char)cv::waitKey(16);
+    }
+
+
+}
 
 static int SDLCALL computer_vision_thread(void* ptr) {
     while (true) {
         video >> frame;
-        static constexpr float crop_ratio = 0.7f;
-        //static constexpr float crop_ratio = 0.7f;
-        //cropped_frame = frame(cv::Rect(50, 50, 720, ));
         std::vector<int> markerIds;
         std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
-        cv::aruco::ArucoDetector detector(dictionary, detectorParams);
         detector.detectMarkers(frame, markerCorners, markerIds, rejectedCandidates);
 
         SDL_LockMutex(mutex);
         detected_structures.clear();
         for (int i = 0; i < markerIds.size(); i++) {
             cv::Point2f center = (markerCorners[i][0] + markerCorners[i][1] + markerCorners[i][2] + markerCorners[i][3]) / 4.f;
-            center.x = (center.x / frame.cols) * WIDTH;
-            center.y = (center.y / frame.rows) * HEIGHT;
+
+            if (apply_perspective) {
+                std::array<cv::Point2f, 1> output = { center };
+                cv::perspectiveTransform(std::array<cv::Point2f, 1>{center}, output, perspective_matrix);
+                center = output[0];
+                center.x *= WIDTH;
+                center.y *= HEIGHT;
+            }
+            else {
+                center.x = (center.x / frame.cols) * WIDTH;
+                center.y = (center.y / frame.rows) * HEIGHT;
+            }
+
             detected_structures.emplace_back(DetectedStructure{b2Vec2{ center.x, center.y }, markerIds[i]});
         }
         detected_strucutures_dirty = true;
@@ -118,7 +161,7 @@ struct Food {
 };
 
 struct Tree {
-    static constexpr float TREE_SIZE = 350.f;
+    static constexpr float TREE_SIZE = 250.f;
     static constexpr int HEALTH_MORE_THAN_FRUIT = 2;
     Animation animation{};
     b2BodyId body_id;
@@ -197,18 +240,75 @@ b2Vec2 get_closest_ant_position(b2Vec2 position, Ant* ignore) {
     return closest_ant;
 }
 
+void calibrate() {
+    draw_white();
+    start_render();
+    const float code_size = 500.f;
+    const float margin = 50.f;
+    const int screen_width = get_screen_width() - margin;
+    const int screen_height = get_screen_height() - margin;
+    render_code(margin, margin, code_size, code_size, code_1);
+    render_code(screen_width - code_size, margin, code_size, code_size, code_2);
+    render_code(margin, screen_height - code_size, code_size, code_size, code_3);
+    render_code(screen_width - code_size, screen_height - code_size, code_size, code_size, code_4);
+    end_render();
+    draw_black();
+
+    SDL_Delay(5000.f);
+
+    cv::Point2f top_left = { -1.f, -1.f };
+    cv::Point2f top_right = { -1.f, -1.f };
+    cv::Point2f bottom_left = { -1.f, -1.f };
+    cv::Point2f bottom_right = { -1.f, -1.f };
+    bool found[4] = {false, false, false, false};
+
+    video >> frame;
+
+    std::vector<int> markerIds;
+    std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
+    detector.detectMarkers(frame, markerCorners, markerIds, rejectedCandidates);
+    for (int i = 0; i < markerIds.size(); i++) {
+        if (markerIds[i] == 1) {
+            top_left = markerCorners[i][0];
+            found[0] = true;
+        }
+        else if (markerIds[i] == 2) {
+            top_right = markerCorners[i][1];
+            found[1] = true;
+        }
+        else if (markerIds[i] == 3) {
+            bottom_left = markerCorners[i][3];
+            found[2] = true;
+        }
+        else if (markerIds[i] == 4) {
+            bottom_right = markerCorners[i][2];
+            found[3] = true;
+        }
+    }
+
+    for (int i = 0; i < 4; i++) {
+        if (!found[i]) {
+            apply_perspective = false;
+            return;
+        }
+    }
+
+    cv::Point2f corners[4] = { top_left, top_right, bottom_left, bottom_right };
+    cv::Point2f unit_square[4] = { { 0.f,0.f },{1.f, 0.f},{0.f, 1.f},{1.f, 1.f} };
+    perspective_matrix = cv::getPerspectiveTransform(corners, unit_square);
+}
+
 int main() {
+    test();
+
     //for (int i = 0; i < 10; i++) {
     //    cv::Mat markerImage;
     //    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-    //    cv::aruco::generateImageMarker(dictionary, i, 300, markerImage, 1);
+    //    cv::aruco::generateImageMarker(dictionary, i, 400, markerImage, 1);
     //    cv::imwrite("marker" + std::to_string(i) + ".png", markerImage);
     //}
     //return 0;
-
-    mutex = SDL_CreateMutex();
-
-	video = cv::VideoCapture(0);
+    video = cv::VideoCapture(0);
     video.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
     video.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
 
@@ -217,12 +317,15 @@ int main() {
         std::cout << "Could not open video.";
         return -1;
     }
-    SDL_CreateThread(computer_vision_thread, "TestThread", (void*)NULL);
-
-    static constexpr char* WINDOW = "window";
-    cv::namedWindow(WINDOW, cv::WINDOW_AUTOSIZE);
-
+    detectorParams.minMarkerPerimeterRate = 0.001;
+    detectorParams.minOtsuStdDev = 1.f;
+    detector = cv::aruco::ArucoDetector(dictionary, detectorParams);
     start_window();
+    calibrate();
+
+    mutex = SDL_CreateMutex();
+
+    SDL_CreateThread(computer_vision_thread, "TestThread", (void*)NULL);
 
     for (Monument& monument : monuments) {
         monument.animation.textures = { circle_1, circle_2, circle_3 };
@@ -249,7 +352,7 @@ int main() {
         double deltatime = (new_time - time) / 1000.f;
         time = new_time;
 
-        deltatime *= 10.f;
+        deltatime *= 1.f;
 
         start_render();
 
