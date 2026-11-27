@@ -97,8 +97,8 @@ void test() {
     {
         std::cout << "Could not open video.";
     }
-    detectorParams.minMarkerPerimeterRate = 0.001;
-    detectorParams.minOtsuStdDev = 1.f;
+    //detectorParams.minMarkerPerimeterRate = 0.003;
+    //detectorParams.minOtsuStdDev = 1.f;
     detector = cv::aruco::ArucoDetector(dictionary, detectorParams);
 
     static constexpr char* WINDOW = "window";
@@ -135,8 +135,8 @@ static int SDLCALL computer_vision_thread(void* ptr) {
                 std::array<cv::Point2f, 1> output = { center };
                 cv::perspectiveTransform(std::array<cv::Point2f, 1>{center}, output, perspective_matrix);
                 center = output[0];
-                center.x *= WIDTH;
-                center.y *= HEIGHT;
+                center.x *= get_screen_width();
+                center.y *= get_screen_height();;
             }
             else {
                 center.x = (center.x / frame.cols) * WIDTH;
@@ -244,7 +244,7 @@ void calibrate() {
     draw_white();
     start_render();
     const float code_size = 500.f;
-    const float margin = 50.f;
+    const float margin = 10.f;
     const int screen_width = get_screen_width() - margin;
     const int screen_height = get_screen_height() - margin;
     render_code(margin, margin, code_size, code_size, code_1);
@@ -293,13 +293,14 @@ void calibrate() {
         }
     }
 
+    apply_perspective = true;
     cv::Point2f corners[4] = { top_left, top_right, bottom_left, bottom_right };
     cv::Point2f unit_square[4] = { { 0.f,0.f },{1.f, 0.f},{0.f, 1.f},{1.f, 1.f} };
     perspective_matrix = cv::getPerspectiveTransform(corners, unit_square);
 }
 
 int main() {
-    test();
+    //test();
 
     //for (int i = 0; i < 10; i++) {
     //    cv::Mat markerImage;
@@ -317,8 +318,8 @@ int main() {
         std::cout << "Could not open video.";
         return -1;
     }
-    detectorParams.minMarkerPerimeterRate = 0.001;
-    detectorParams.minOtsuStdDev = 1.f;
+    //detectorParams.minMarkerPerimeterRate = 0.003;
+    //detectorParams.minOtsuStdDev = 1.f;
     detector = cv::aruco::ArucoDetector(dictionary, detectorParams);
     start_window();
     calibrate();
@@ -348,6 +349,11 @@ int main() {
     Uint64 time = SDL_GetTicks();
     
     while (true) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            continue;
+        }
+
         Uint64 new_time = SDL_GetTicks();
         double deltatime = (new_time - time) / 1000.f;
         time = new_time;
