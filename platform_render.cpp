@@ -11,14 +11,22 @@ SDL_Texture* tree_3 = nullptr;
 SDL_Texture* circle_1 = nullptr;
 SDL_Texture* circle_2 = nullptr;
 SDL_Texture* circle_3 = nullptr;
-SDL_Texture* food_1 = nullptr;
-SDL_Texture* food_2 = nullptr;
-SDL_Texture* food_3 = nullptr;
-SDL_Texture* food_4 = nullptr;
 SDL_Texture* code_1 = nullptr;
 SDL_Texture* code_2 = nullptr;
 SDL_Texture* code_3 = nullptr;
 SDL_Texture* code_4 = nullptr;
+SDL_Texture* spider_1 = nullptr;
+SDL_Texture* spider_2 = nullptr;
+SDL_Texture* spider_3 = nullptr;
+SDL_Texture* deer_1 = nullptr;
+SDL_Texture* deer_2 = nullptr;
+SDL_Texture* deer_3 = nullptr;
+SDL_Texture* deer_4 = nullptr;
+SDL_Texture* frog_1 = nullptr;
+SDL_Texture* frog_2 = nullptr;
+SDL_Texture* frog_3 = nullptr;
+SDL_Texture* fruit[11] = {};
+
 
 void draw_white() {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -27,6 +35,7 @@ void draw_white() {
 void draw_black() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 }
+
 void draw_rect_around_point(int x, int y, int w, int h) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_FRect rect = { x, y, w, h };
@@ -99,14 +108,31 @@ void load_assets() {
     load_image("circle_1.png", &circle_1);
     load_image("circle_2.png", &circle_2);
     load_image("circle_3.png", &circle_3);
-    load_image("food1.png", &food_1);
-    load_image("food2.png", &food_2);
-    load_image("food3.png", &food_3);
-    load_image("food4.png", &food_4);
     load_image("code_1.png", &code_1);
     load_image("code_2.png", &code_2);
     load_image("code_3.png", &code_3);
     load_image("code_4.png", &code_4);
+    load_image("spider-1.png", &spider_1);
+    load_image("spider-2.png", &spider_2);
+    load_image("spider-3.png", &spider_3);
+    load_image("frog-1.png", &frog_1);
+    load_image("frog-2.png", &frog_2);
+    load_image("frog-3.png", &frog_3);
+    load_image("deer-1.png", &deer_1);
+    load_image("deer-2.png", &deer_2);
+    load_image("deer-3.png", &deer_3);
+    load_image("deer-4.png", &deer_4);
+    load_image("Fruit-1.png", &fruit[0]);
+    load_image("Fruit-1.png", &fruit[1]);
+    load_image("Fruit-2.png", &fruit[2]);
+    load_image("Fruit-3.png", &fruit[3]);
+    load_image("Fruit-4.png", &fruit[4]);
+    load_image("Fruit-5.png", &fruit[5]);
+    load_image("Fruit-6.png", &fruit[6]);
+    load_image("Fruit-7.png", &fruit[7]);
+    load_image("Fruit-8.png", &fruit[8]);
+    load_image("Fruit-9.png", &fruit[9]);
+    load_image("Fruit-10.png", &fruit[10]);
 }
 
 bool start_window() {

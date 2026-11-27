@@ -12,14 +12,22 @@ extern SDL_Texture* tree_3;
 extern SDL_Texture* circle_1;
 extern SDL_Texture* circle_2;
 extern SDL_Texture* circle_3;
-extern SDL_Texture* food_1;
-extern SDL_Texture* food_2;
-extern SDL_Texture* food_3;
-extern SDL_Texture* food_4;
 extern SDL_Texture* code_1;
 extern SDL_Texture* code_2;
 extern SDL_Texture* code_3;
 extern SDL_Texture* code_4;
+extern SDL_Texture* spider_1;
+extern SDL_Texture* spider_2;
+extern SDL_Texture* spider_3;
+extern SDL_Texture* frog_1;
+extern SDL_Texture* frog_2;
+extern SDL_Texture* frog_3;
+extern SDL_Texture* deer_1;
+extern SDL_Texture* deer_2;
+extern SDL_Texture* deer_3;
+extern SDL_Texture* deer_4;
+extern SDL_Texture* fruit[11];
+
 
 void draw_rect_around_point(int x, int y, int w, int h);
 void start_render();

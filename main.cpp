@@ -151,6 +151,46 @@ static int SDLCALL computer_vision_thread(void* ptr) {
     }
 }
 
+enum class Species {
+    Deer,
+    Frog,
+    Spider,
+};
+
+struct Ant {
+    float health;
+    float speed;
+    float cooldown_timer = 0.f;
+    b2BodyId body_id;
+    b2Vec2 intended_direction = { 1.f, 1.f };
+    b2Vec2 velocity = { 1.f, 1.f };
+    float direction_timer = 0.f;
+    bool dead = false;
+    Animation animation{};
+    Species species;
+
+    inline void init(float x, float y, Species species) {
+        this->species = species;
+        body_id = create_physics_entity(x, y, 20.f);
+        health = random_float(60.f, 180.f);
+        speed = random_float(8.f, 12.f) * 4.f;
+        if (species == Species::Spider) {
+            animation.textures = { spider_1, spider_2, spider_3 };
+        }
+        else if (species == Species::Deer) {
+            animation.textures = { deer_1, deer_2, deer_3, deer_4 };
+        }
+        else if (species == Species::Frog) {
+            animation.textures = { frog_1, frog_2, frog_3 };
+        }
+    }
+
+    inline void destroy() {
+        destroy_physics_entity(body_id);
+    }
+};
+
+
 struct Food {
     b2Vec2 position;
     float r;
@@ -196,7 +236,7 @@ struct Tree {
         for (int i = 0; i < fruit; i++) {
             float variance = TREE_SIZE / 4.f;
             Food new_food = { b2Vec2{ random_float(x - variance, x + variance), random_float(y - variance, y + variance) },
-                random_float(0.6f, 1.f), random_float(0.6f, 1.f), random_float(0.6f, 1.f), random_integer(0, 3), random_float(0.f, 2.f*3.14)};
+                random_float(0.9f, 1.f), random_float(0.9f, 1.f), random_float(0.9f, 1.f), random_integer(0, 10), random_float(0.f, 2.f*3.14)};
             food.emplace_back(new_food);
         }
     }
@@ -336,7 +376,7 @@ int main() {
     init_physics();
     for (int i = 0; i < 10; i++) {
         Ant ant{};
-        ant.init(random_float(0.f, 1920.f), random_float(0.f, 1080.f));
+        ant.init(random_float(0.f, 1920.f), random_float(0.f, 1080.f), Species::Spider);
         ants.emplace_back(ant);
     }
 
@@ -395,6 +435,7 @@ int main() {
         update_physics(deltatime);
         for (Ant& ant : ants) {
             b2Vec2 position = b2Body_GetPosition(ant.body_id);
+            ant.animation.update(deltatime);
 
             ant.health -= deltatime;
             if (ant.health <= 0.f) ant.dead = true;
@@ -413,8 +454,9 @@ int main() {
 
             ant.velocity = exponential_decay(ant.velocity, ant.intended_direction, 1, deltatime);
             b2Body_SetLinearVelocity(ant.body_id, ant.velocity * ant.speed);
+            ant.animation.framerate = b2Length(ant.velocity * ant.speed) / 4.5f;
 
-            render_entity(position.x, position.y, std::atan2(ant.velocity.y, ant.velocity.x), 50, 50, jermaine);
+            render_entity(position.x, position.y, std::atan2(ant.velocity.y, ant.velocity.x), 50, 50, ant.animation.get_texture());
         }
 
         std::vector<b2Vec2> new_ants{};
@@ -458,7 +500,7 @@ int main() {
         }
         for (const b2Vec2& new_ant : new_ants) {
             ants.emplace_back();
-            ants[ants.size() - 1].init(new_ant.x, new_ant.y);
+            ants[ants.size() - 1].init(new_ant.x, new_ant.y, Species::Spider);
         }
         
 
@@ -482,21 +524,7 @@ int main() {
             }
 
             for (Food& food : trees[i].food) {
-                SDL_Texture* food_texture = nullptr;
-                switch (food.type) {
-                case 0:
-                    food_texture = food_1;
-                    break;
-                case 1:
-                    food_texture = food_2;
-                    break;
-                case 2:
-                    food_texture = food_3;
-                    break;
-                case 3:
-                    food_texture = food_4;
-                    break;
-                }
+                SDL_Texture* food_texture = fruit[food.type];
                 SDL_SetTextureColorMod(food_texture, food.r * 255, food.g * 255, food.b * 255);
                 render_entity(food.position.x, food.position.y, food.rotation, 15, 15, food_texture);
             }
