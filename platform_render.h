@@ -27,7 +27,8 @@ extern SDL_Texture* deer_2;
 extern SDL_Texture* deer_3;
 extern SDL_Texture* deer_4;
 extern SDL_Texture* fruit[11];
-
+extern SDL_Texture* bird_1;
+extern SDL_Texture* bird_2;
 
 void draw_rect_around_point(int x, int y, int w, int h);
 void start_render();

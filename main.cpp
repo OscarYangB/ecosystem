@@ -13,6 +13,10 @@
 
 static constexpr char* WINDOW = "window";
 
+b2Vec2 random_direction() {
+    return b2RotateVector(b2MakeRot(random_float(0.f, 2.f * 3.14f)), b2Vec2{ 1.f, 0.f });
+}
+
 struct Animation {
     std::vector<SDL_Texture*> textures = {};
     int index = 0;
@@ -155,6 +159,7 @@ enum class Species {
     Deer,
     Frog,
     Spider,
+    Bird,
 };
 
 struct Ant {
@@ -168,20 +173,53 @@ struct Ant {
     bool dead = false;
     Animation animation{};
     Species species;
+    float w;
+    float h;
+    float scale;
+    float r;
+    float g;
+    float b;
 
     inline void init(float x, float y, Species species) {
         this->species = species;
-        body_id = create_physics_entity(x, y, 20.f);
+        body_id = create_physics_entity(x, y, 20.f, species == Species::Bird);
         health = random_float(60.f, 180.f);
         speed = random_float(8.f, 12.f) * 4.f;
+        scale = random_float(0.9f, 1.1f);
+        r = random_float(0.9f, 1.0f);
+        g = random_float(0.9f, 1.0f);
+        b = random_float(0.9f, 1.0f);
+        intended_direction = random_direction();
+        velocity = intended_direction;
+        b2Body_SetLinearVelocity(body_id, velocity);
+
         if (species == Species::Spider) {
             animation.textures = { spider_1, spider_2, spider_3 };
+            w = 50.f;
+            h = 50.f;
         }
         else if (species == Species::Deer) {
             animation.textures = { deer_1, deer_2, deer_3, deer_4 };
+            w = 50.f;
+            h = 100.f;
+            speed /= 2.f;
+            health *= 2.f;
         }
         else if (species == Species::Frog) {
             animation.textures = { frog_1, frog_2, frog_3 };
+            w = 50.f;
+            h = 50.f;
+        }
+        else if (species == Species::Bird) {
+            if (random_float(0.f, 1.f) > 0.5f) {
+                animation.textures = { bird_1, bird_1, bird_1 };
+            }
+            else {
+                animation.textures = { bird_2, bird_2, bird_2 };
+            }
+            w = 50.f;
+            h = 100.f;
+            speed *= 4.f;
         }
     }
 
@@ -219,6 +257,15 @@ struct Tree {
         grow_timer = random_float(30.f, 100.f);
     }
 
+    inline void add_food() {
+        b2Vec2 position = b2Body_GetPosition(body_id);
+        health++;
+        float variance = TREE_SIZE / 4.f;
+        Food new_food = { b2Vec2{ random_float(position.x - variance, position.x + variance), random_float(position.y - variance, position.y + variance) },
+            random_float(0.9f, 1.f), random_float(0.9f, 1.f), random_float(0.9f, 1.f), random_integer(0, 10), random_float(0.f, 2.f * 3.14) };
+        food.emplace_back(new_food);
+    }
+
     inline void init(float x, float y) {
         scale = random_float(0.8f, 1.2f);
         body_id = create_static_physics_entity(x, y, random_float(0.f, 360.f), (TREE_SIZE * scale) / 2.f);
@@ -234,11 +281,10 @@ struct Tree {
         int fruit = random_integer(3, 6);
         health = fruit + HEALTH_MORE_THAN_FRUIT;
         for (int i = 0; i < fruit; i++) {
-            float variance = TREE_SIZE / 4.f;
-            Food new_food = { b2Vec2{ random_float(x - variance, x + variance), random_float(y - variance, y + variance) },
-                random_float(0.9f, 1.f), random_float(0.9f, 1.f), random_float(0.9f, 1.f), random_integer(0, 10), random_float(0.f, 2.f*3.14)};
-            food.emplace_back(new_food);
+            add_food();
         }
+
+        b2Body_SetUserData(body_id, this);
     }
 
     inline void destroy() {
@@ -263,11 +309,11 @@ b2Vec2 get_closest_tree_position(b2Vec2 position) {
     return closest_tree;
 }
 
-b2Vec2 get_closest_ant_position(b2Vec2 position, Ant* ignore) {
+b2Vec2 get_closest_ant_position(b2Vec2 position, Ant* ignore, Species species) {
     float smallest_distance = 500000.f;
     b2Vec2 closest_ant = { 1.f, 0.f};
     for (Ant& ant : ants) {
-        if (&ant == ignore) {
+        if (&ant == ignore || ant.species != species) {
             continue;
         }
         b2Vec2 ant_position = b2Body_GetPosition(ant.body_id);
@@ -379,6 +425,11 @@ int main() {
         ant.init(random_float(0.f, 1920.f), random_float(0.f, 1080.f), Species::Spider);
         ants.emplace_back(ant);
     }
+    for (int i = 0; i < 4; i++) {
+        Ant ant{};
+        ant.init(random_float(0.f, 1920.f), random_float(0.f, 1080.f), Species::Deer);
+        ants.emplace_back(ant);
+    }
 
     for (const b2Vec2& tree_position : tree_positions) {
         Tree tree{};
@@ -432,34 +483,67 @@ int main() {
             }
         }
 
+        static float bird_timer = 0.f;
+        bird_timer += deltatime;
+        if (bird_timer > 10.f) {
+            bird_timer = 0.f;
+            ants.emplace_back();
+            b2Vec2 random_position;
+            int random_number = random_integer(1, 4);
+            if (random_number == 1) {
+                random_position = { 0.f, random_float(0.f, get_screen_height()) };
+            }
+            else if (random_number == 2) {
+                random_position = { (float)get_screen_width(), random_float(0.f, get_screen_height()) };
+            }
+            else if (random_number == 3) {
+                random_position = { random_float(0.f, get_screen_width()), 0.f };
+            }
+            else if (random_number == 4) {
+                random_position = { random_float(0.f, get_screen_width()), (float)get_screen_height()};
+            }
+            ants[ants.size() - 1].init(random_position.x, random_position.y, Species::Bird);
+            b2Body_SetLinearVelocity(ants[ants.size() - 1].body_id, ants[ants.size() - 1].velocity * ants[ants.size() - 1].speed);
+        }
+
         update_physics(deltatime);
         for (Ant& ant : ants) {
             b2Vec2 position = b2Body_GetPosition(ant.body_id);
-            ant.animation.update(deltatime);
-
             ant.health -= deltatime;
             if (ant.health <= 0.f) ant.dead = true;
-            ant.cooldown_timer += deltatime;
-            ant.direction_timer -= deltatime;
-            if (ant.direction_timer < 0.f) {
-                ant.direction_timer = random_float(3.f, 6.f);                
-                ant.intended_direction = b2Normalize(b2RotateVector(b2MakeRot(random_float(-degtorad(30), degtorad(30))), b2Body_GetLinearVelocity(ant.body_id)));
+            ant.animation.update(deltatime);
+
+            if (ant.species == Species::Spider || ant.species == Species::Deer) {
+                ant.cooldown_timer += deltatime;
+                ant.direction_timer -= deltatime;
+                if (ant.direction_timer < 0.f) {
+                    ant.direction_timer = random_float(3.f, 6.f);
+                    ant.intended_direction = b2Normalize(b2RotateVector(b2MakeRot(random_float(-degtorad(30), degtorad(30))), b2Body_GetLinearVelocity(ant.body_id)));
+                }
+                if (ant.health < 20.f) {
+                    ant.intended_direction = b2Normalize(get_closest_tree_position(position) - position) * 2.f;
+                }
+                else if (ant.cooldown_timer > 40.f && ant.health > 60.f) {
+                    ant.intended_direction = b2Normalize(get_closest_ant_position(position, &ant, ant.species) - position) * 2.f;
+                }
+
+                ant.velocity = exponential_decay(ant.velocity, ant.intended_direction, 1, deltatime);
+                b2Body_SetLinearVelocity(ant.body_id, ant.velocity * ant.speed);
+                ant.animation.framerate = b2Length(ant.velocity * ant.speed) / 4.5f;
             }
-            if (ant.health < 20.f) {
-                ant.intended_direction = b2Normalize(get_closest_tree_position(position) - position) * 2.f;
-            }
-            else if (ant.cooldown_timer > 40.f && ant.health > 60.f) {
-                ant.intended_direction = b2Normalize(get_closest_ant_position(position, &ant) - position) * 2.f;
+            else if (ant.species == Species::Bird) {
+
             }
 
-            ant.velocity = exponential_decay(ant.velocity, ant.intended_direction, 1, deltatime);
-            b2Body_SetLinearVelocity(ant.body_id, ant.velocity * ant.speed);
-            ant.animation.framerate = b2Length(ant.velocity * ant.speed) / 4.5f;
-
-            render_entity(position.x, position.y, std::atan2(ant.velocity.y, ant.velocity.x), 50, 50, ant.animation.get_texture());
+            if (ant.species != Species::Bird) {
+                SDL_SetTextureColorMod(ant.animation.get_texture(), ant.r * 255, ant.g * 255, ant.b * 255);
+                render_entity(position.x, position.y, std::atan2(ant.velocity.y, ant.velocity.x), ant.w * ant.scale, ant.h * ant.scale, ant.animation.get_texture());
+            }
+            //DrawLine(position.x, position.y, position.x + ant.velocity.x * 50, position.y + ant.velocity.y * 50);
         }
 
         std::vector<b2Vec2> new_ants{};
+        std::vector<Species> new_ants_species{};
         auto events = b2World_GetContactEvents(world_id);
         for (int i = 0; i < events.beginCount; i++) {
             auto body_a = b2Shape_GetBody(events.beginEvents[i].shapeIdA);
@@ -477,12 +561,13 @@ int main() {
                     hit_trees.emplace_back(&tree);
                 }
             }
-            if (hit_ants.size() == 2) { // Collision was between 2 ants
+            if (hit_ants.size() == 2 && hit_ants[0]->species == hit_ants[1]->species) { // Collision was between 2 ants of same species
                 if (random_float(0.f, 1.f) > 0.4f && hit_ants[0]->cooldown_timer > 7.f && hit_ants[1]->cooldown_timer > 7.f) {
                     b2Vec2 position = b2Lerp(b2Body_GetPosition(body_a), b2Body_GetPosition(body_b), 0.5);
                     hit_ants[0]->health /= 1.2f;
                     hit_ants[1]->health /= 1.2f;
                     new_ants.emplace_back(position);
+                    new_ants_species.emplace_back(hit_ants[0]->species);
                 }
                 hit_ants[0]->cooldown_timer = 0.f;
                 hit_ants[1]->cooldown_timer = 0.f;
@@ -498,9 +583,23 @@ int main() {
                 }
             }
         }
-        for (const b2Vec2& new_ant : new_ants) {
+        for (int i = 0; i < new_ants.size(); i++) {
+            if (ants.size() > 200) {
+                ants[random_integer(0, ants.size() - 2)].dead = true;
+            }
             ants.emplace_back();
-            ants[ants.size() - 1].init(new_ant.x, new_ant.y, Species::Spider);
+            ants[ants.size() - 1].init(new_ants[i].x, new_ants[i].y, new_ants_species[i]);
+        }
+
+        b2SensorEvents sensorEvents = b2World_GetSensorEvents(world_id);
+        for (int i = 0; i < sensorEvents.beginCount; ++i)
+        {
+            b2BodyId visitor_body = b2Shape_GetBody(sensorEvents.beginEvents[i].visitorShapeId);
+            for (Tree& tree : trees) {
+                if (B2_ID_EQUALS(tree.body_id, visitor_body)) {
+                    tree.add_food();
+                }
+            }
         }
         
 
@@ -513,6 +612,9 @@ int main() {
 
             trees[i].grow_timer -= deltatime;
             if (trees[i].grow_timer < 0.f) {
+                if (trees.size() > 200) {
+                    trees[random_integer(0, trees.size() - 2)].dead = true;
+                }
                 trees[i].reset_grow_timer(trees.size());
                 trees.emplace_back();              
                 trees[trees.size() - 1].init(position.x + random_float(-tree_size/4.f, tree_size/4.f), position.y + random_float(-tree_size/4.f, tree_size/4.f));
@@ -527,6 +629,13 @@ int main() {
                 SDL_Texture* food_texture = fruit[food.type];
                 SDL_SetTextureColorMod(food_texture, food.r * 255, food.g * 255, food.b * 255);
                 render_entity(food.position.x, food.position.y, food.rotation, 15, 15, food_texture);
+            }
+        }
+
+        for (Ant& ant : ants) {
+            if (ant.species == Species::Bird) {
+                b2Vec2 position = b2Body_GetPosition(ant.body_id);
+                render_entity(position.x, position.y, std::atan2(ant.velocity.y, ant.velocity.x), ant.w * ant.scale, ant.h * ant.scale, ant.animation.get_texture());
             }
         }
 
@@ -564,6 +673,42 @@ int main() {
         ants.erase(remove_iter, ants.end());
         auto remove_iter_tree = std::remove_if(trees.begin(), trees.end(), [](const Tree& tree) {return tree.dead; });
         trees.erase(remove_iter_tree, trees.end());
+
+        bool spiders_extint = true;
+        bool deer_extint = true;
+        bool frogs_extint = true;
+        for (Ant& ant : ants) {
+            if (ant.species == Species::Spider) {
+                spiders_extint = false;
+            }
+            else if (ant.species == Species::Deer) {
+                deer_extint = false;
+            }
+            else if (ant.species == Species::Frog) {
+                frogs_extint = false;
+            }
+        }
+        if (spiders_extint) {
+            Ant ant{};
+            ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Spider);
+            ants.emplace_back(ant);
+        }
+        if (deer_extint) {
+            Ant ant{};
+            ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Deer);
+            ants.emplace_back(ant);
+        }
+        if (frogs_extint) {
+            Ant ant{};
+            ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Frog);
+            ants.emplace_back(ant);
+        }
+        if (trees.size() == 0) {
+            Tree tree{};
+            tree.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()));
+            trees.emplace_back(tree);
+        }
+
 
         //std::cout << 1.f / deltatime << "\n";
 

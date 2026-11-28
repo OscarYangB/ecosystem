@@ -28,6 +28,7 @@ b2BodyId create_static_physics_entity(float x, float y, float rotation, float si
 	circle.center = { 0.f,0.f };
 	circle.radius = size;
 	b2ShapeDef shapeDef = b2DefaultShapeDef();
+	shapeDef.enableSensorEvents = true;
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);
 	return bodyId;
 }
@@ -80,7 +81,7 @@ void init_physics() {
 	random_generator = std::mt19937{ device() };
 }
 
-b2BodyId create_physics_entity(float x, float y, float size) {
+b2BodyId create_physics_entity(float x, float y, float size, bool is_sensor) {
 	b2BodyDef bodyDef = b2DefaultBodyDef();
 	bodyDef.type = b2_dynamicBody;
 	bodyDef.position = b2Pos{ x, y };
@@ -94,6 +95,8 @@ b2BodyId create_physics_entity(float x, float y, float size) {
 	circle.center = { 0.f,0.f };
 	circle.radius = size;
 	b2ShapeDef shapeDef = b2DefaultShapeDef();
+	shapeDef.isSensor = is_sensor;
+	shapeDef.enableSensorEvents = is_sensor;
 	shapeDef.density = 0.6f;
 	shapeDef.material.friction = 500.f;
 	b2CreateCircleShape(bodyId, &shapeDef, &circle);

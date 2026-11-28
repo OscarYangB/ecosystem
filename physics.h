@@ -19,7 +19,7 @@ constexpr b2Vec2 MONUMENT_DIMENSIONS[] = {
 
 void init_physics();
 b2BodyId create_static_physics_entity(float x, float y, float rotation, float size);
-b2BodyId create_physics_entity(float x, float y, float size);
+b2BodyId create_physics_entity(float x, float y, float size, bool is_sensor=false);
 void destroy_physics_entity(b2BodyId body);
 void update_physics(double deltatime);
 void move_monument(int id, b2Vec2 position);

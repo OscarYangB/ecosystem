@@ -26,7 +26,8 @@ SDL_Texture* frog_1 = nullptr;
 SDL_Texture* frog_2 = nullptr;
 SDL_Texture* frog_3 = nullptr;
 SDL_Texture* fruit[11] = {};
-
+SDL_Texture* bird_1 = nullptr;
+SDL_Texture* bird_2 = nullptr;
 
 void draw_white() {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -133,6 +134,8 @@ void load_assets() {
     load_image("Fruit-8.png", &fruit[8]);
     load_image("Fruit-9.png", &fruit[9]);
     load_image("Fruit-10.png", &fruit[10]);
+    load_image("bird-blue.png", &bird_1);
+    load_image("bird-orange.png", &bird_2);
 }
 
 bool start_window() {
