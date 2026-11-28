@@ -688,27 +688,28 @@ int main() {
                 frogs_extint = false;
             }
         }
-        if (spiders_extint) {
-            Ant ant{};
-            ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Spider);
-            ants.emplace_back(ant);
+        for (int i = 0; i < 4; i++) {
+            if (spiders_extint) {
+                Ant ant{};
+                ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Spider);
+                ants.emplace_back(ant);
+            }
+            if (deer_extint) {
+                Ant ant{};
+                ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Deer);
+                ants.emplace_back(ant);
+            }
+            if (frogs_extint) {
+                Ant ant{};
+                ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Frog);
+                ants.emplace_back(ant);
+            }
+            if (trees.size() == 0) {
+                Tree tree{};
+                tree.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()));
+                trees.emplace_back(tree);
+            }
         }
-        if (deer_extint) {
-            Ant ant{};
-            ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Deer);
-            ants.emplace_back(ant);
-        }
-        if (frogs_extint) {
-            Ant ant{};
-            ant.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()), Species::Frog);
-            ants.emplace_back(ant);
-        }
-        if (trees.size() == 0) {
-            Tree tree{};
-            tree.init(random_float(0.f, get_screen_width()), random_float(0.f, get_screen_height()));
-            trees.emplace_back(tree);
-        }
-
 
         //std::cout << 1.f / deltatime << "\n";
 
